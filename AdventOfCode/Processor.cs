@@ -14,9 +14,7 @@ namespace AdventOfCode
 
         public void Process()
         {
-            ProcessDay(DayEnum.Day1);
-            //ProcessDay(DayEnum.Day2);
-            //ProcessDay(DayEnum.Day3);
+            ProcessDay(DayEnum.Day2);
         }
 
         private void ProcessDay(DayEnum dayEnum)
