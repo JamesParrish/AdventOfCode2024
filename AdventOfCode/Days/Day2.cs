@@ -27,7 +27,7 @@ namespace AdventOfCode.Days
         {
             Console.WriteLine("Processing Day 2 - 2 Star");
 
-            var lines = GetLines(Day, StageEnum.Stage1);
+            var lines = GetLines(Day, StageEnum.Stage2);
 
             var safeReportCount = GetNumberOfSafeReports(lines, ToleranceDampenerAllowance);
 
