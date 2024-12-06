@@ -25,6 +25,7 @@ internal class Program
                 services.AddTransient<IFileHelper, FileHelper>();
                 services.AddTransient<IDay, Day1>();
                 services.AddTransient<IDay, Day2>();
+                services.AddTransient<IDay, Day3>();
             });
     }
 }
