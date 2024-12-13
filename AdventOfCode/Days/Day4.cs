@@ -27,9 +27,11 @@ namespace AdventOfCode.Days
         {
             Console.WriteLine("Processing Day 4 - 2 Star");
 
-            //var lines = GetLines(Day, StageEnum.Stage2);
+            var lines = GetLines(Day, StageEnum.Stage2);
 
-            Console.WriteLine($"Pending");
+            var totalCrossedWordCount = CalculateTotalCrossedWordCount(lines.ToList());
+
+            Console.WriteLine($"Total crossed word count: {totalCrossedWordCount}");
         }
 
         private int CalculateTotalWordCount(IList<string> lines)
@@ -53,6 +55,27 @@ namespace AdventOfCode.Days
             return totalWordCount;
         }
 
+        private int CalculateTotalCrossedWordCount(IList<string> lines)
+        {
+            var totalCrossedWordCount = 0;
+
+            for (int l = 0; l < lines.Count(); l++)
+            {
+                var line = lines[l];
+
+                for (var c = 0; c < line.Length; c++)
+                {
+                    if (char.Equals(line[c], SecondCharacter))
+                    {
+                        var crossedWordCountStartingAtCharacter = GetCrossedWordCountStartingFromCharacter(lines, l, c);
+                        totalCrossedWordCount += crossedWordCountStartingAtCharacter;
+                    }
+                }
+            }
+
+            return totalCrossedWordCount;
+        }
+
         private int GetWordCountStartingFromCharacter(IList<string> lines, int lineIndex, int characterIndex)
         {
             var wordCount = 0;
@@ -61,7 +84,7 @@ namespace AdventOfCode.Days
             {
                 for (var columnStep = -1; columnStep <= 1; columnStep++)
                 {
-                    if (HasWord(lines, lineIndex, characterIndex, lineStep, columnStep))
+                    if (HasWord(lines, lineIndex, characterIndex, lineStep, columnStep, [SecondCharacter, ThirdCharacter, FourthCharacter]))
                     {
                         wordCount++;
                     }
@@ -71,44 +94,79 @@ namespace AdventOfCode.Days
             return wordCount;
         }
 
-        private bool HasWord(IList<string> lines, int lineIndex, int characterIndex, int lineStep, int characterStep)
+        private int GetCrossedWordCountStartingFromCharacter(IList<string> lines, int lineIndex, int characterIndex)
         {
-            var endingLineIndex = lineIndex + (lineStep * 3);
+            var wordCount = 0;
+
+            foreach (var step in new[] { -1, 1 })
+            {
+                if (!HasWord(lines, lineIndex, characterIndex, step, step, [ThirdCharacter, FourthCharacter]))
+                {
+                    continue;
+                }
+
+                if (HasCrossedWordCompletion(lines, lineIndex, characterIndex, step))
+                {
+                    wordCount++;
+                }
+            }
+
+            return wordCount;
+        }
+
+        private bool HasWord(IList<string> lines, int lineIndex, int characterIndex, int lineStep, int characterStep, IList<char> charactersToFind)
+        {
+            var endingLineIndex = lineIndex + (lineStep * charactersToFind.Count);
 
             if (endingLineIndex < 0 || endingLineIndex > lines.Count - 1)
             {
                 return false;
             }
 
-            var endingCharacterIndex = characterIndex + (characterStep * 3);
+            var endingCharacterIndex = characterIndex + (characterStep * charactersToFind.Count);
 
             if (endingCharacterIndex < 0 || endingCharacterIndex > lines.First().Length - 1)
             {
                 return false;
             }
 
-            var secondCharacter = lines[lineIndex + lineStep][characterIndex + characterStep];
-
-            if (!char.Equals(secondCharacter, SecondCharacter))
+            for (var i = 0; i < charactersToFind.Count; i++)
             {
-                return false;
-            }
+                var character = lines[lineIndex + (lineStep * (i + 1))][characterIndex + (characterStep * (i + 1))];
 
-            var thirdCharacter = lines[lineIndex + (lineStep * 2)][characterIndex + (characterStep * 2)];
-
-            if (!char.Equals(thirdCharacter, ThirdCharacter))
-            {
-                return false;
-            }
-
-            var fourthCharacter = lines[lineIndex + (lineStep * 3)][characterIndex + (characterStep * 3)];
-
-            if (!char.Equals(fourthCharacter, FourthCharacter))
-            {
-                return false;
+                if (!char.Equals(character, charactersToFind[i]))
+                {
+                    return false;
+                }
             }
 
             return true;
+        }
+
+        private bool HasCrossedWordCompletion(IList<string> lines, int lineIndex, int characterIndex, int step)
+        {
+            var firstCharacterToCheck = lines[lineIndex + (step * 2)][characterIndex];
+
+            if (char.Equals(firstCharacterToCheck, 'M'))
+            {
+                var secondCharacterToCheck = lines[lineIndex][characterIndex + (step * 2)];
+
+                if (char.Equals(secondCharacterToCheck, 'S'))
+                {
+                    return true;
+                }
+            }
+            else if (char.Equals(firstCharacterToCheck, 'S'))
+            {
+                var secondCharacterToCheck = lines[lineIndex][characterIndex + (step * 2)];
+
+                if (char.Equals(secondCharacterToCheck, 'M'))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
