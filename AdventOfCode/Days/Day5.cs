@@ -1,4 +1,5 @@
-﻿using AdventOfCode.Enums;
+﻿using System.Collections.ObjectModel;
+using AdventOfCode.Enums;
 using AdventOfCode.Helpers;
 
 namespace AdventOfCode.Days
@@ -6,11 +7,6 @@ namespace AdventOfCode.Days
     public class Day5(IFileHelper fileHelper) : BaseDay(fileHelper), IDay
     {
         public DayEnum Day => DayEnum.Day5;
-
-        private const char FirstCharacter = 'X';
-        private const char SecondCharacter = 'M';
-        private const char ThirdCharacter = 'A';
-        private const char FourthCharacter = 'S';
 
         public void Process1Star()
         {
@@ -34,14 +30,16 @@ namespace AdventOfCode.Days
 
             var lines = GetLines(Day, StageEnum.Stage2);
 
-            var total = 0;
+            var (rules, data) = MapData(lines);
+
+            var total = CalculateTotalOfReorderedDocuments(rules, data);
 
             Console.WriteLine($"Total: {total}");
         }
 
-        private (IDictionary<int, IList<int>>, IEnumerable<IList<int>>) MapData(IEnumerable<string> lines)
+        private (IDictionary<int, Rule>, IEnumerable<IList<int>>) MapData(IEnumerable<string> lines)
         {
-            var rules = new Dictionary<int, IList<int>>();
+            var rules = new Dictionary<int, Rule>();
             var data = new List<IList<int>>();
 
             foreach (var line in lines)
@@ -61,11 +59,24 @@ namespace AdventOfCode.Days
 
                     if (rules.ContainsKey(firstValue))
                     {
-                        rules[firstValue].Add(secondValue);
+                        rules[firstValue].MustPrecede.Add(secondValue);
                     }
                     else
                     {
-                        rules.Add(firstValue, [secondValue]);
+                        var rule = new Rule();
+                        rule.MustPrecede.Add(secondValue);
+                        rules.Add(firstValue, rule);
+                    }
+
+                    if (rules.ContainsKey(secondValue))
+                    {
+                        rules[secondValue].MustBePrecededBy.Add(firstValue);
+                    }
+                    else
+                    {
+                        var rule = new Rule();
+                        rule.MustBePrecededBy.Add(firstValue);
+                        rules.Add(secondValue, rule);
                     }
                 }
                 else if (line.Contains(','))
@@ -80,7 +91,7 @@ namespace AdventOfCode.Days
             return (rules, data);
         }
 
-        private int CalculateTotal(IDictionary<int, IList<int>> rules, IEnumerable<IList<int>> data)
+        private int CalculateTotal(IDictionary<int, Rule> rules, IEnumerable<IList<int>> data)
         {
             var total = 0;
 
@@ -97,7 +108,26 @@ namespace AdventOfCode.Days
             return total;
         }
 
-        private bool PageOrderIsValid(IDictionary<int, IList<int>> rules, IList<int> pageValues)
+        private int CalculateTotalOfReorderedDocuments(IDictionary<int, Rule> rules, IEnumerable<IList<int>> data)
+        {
+            var total = 0;
+
+            foreach (var pageValues in data)
+            {
+                if (!PageOrderIsValid(rules, pageValues))
+                {
+                    var correctedPageValues = GetCorrectedPageValuesCollection(rules, pageValues);
+
+                    var middlePageValue = GetMiddlePageValue(correctedPageValues);
+
+                    total += middlePageValue;
+                }
+            }
+
+            return total;
+        }
+
+        private bool PageOrderIsValid(IDictionary<int, Rule> rules, IList<int> pageValues)
         {
             //foreach (var pageValue in pageValues)
             for (int i = 1; i < pageValues.Count; i++)
@@ -109,7 +139,7 @@ namespace AdventOfCode.Days
                     continue;
                 }
 
-                var pagesPageMustPrecede = rules[pageValue];
+                var pagesPageMustPrecede = rules[pageValue].MustPrecede;
 
                 for (int j = i - 1; j >= 0; j--)
                 {
@@ -132,6 +162,43 @@ namespace AdventOfCode.Days
             var middlePageIndex = pageCount / 2;
 
             return pageValues[middlePageIndex];
+        }
+
+        private IList<int> GetCorrectedPageValuesCollection(IDictionary<int, Rule> rules, IList<int> pageValues)
+        {
+            var pageValueCollection = new ObservableCollection<int>(pageValues);
+
+            for (int i = 0; i < pageValueCollection.Count; i++)
+            {
+                var pageValue = pageValueCollection.ElementAt(i);
+
+                if (!rules.ContainsKey(pageValue))
+                {
+                    continue;
+                }
+
+                var rule = rules[pageValue];
+
+                for (var j = 0; j < i; j++)
+                {
+                    var comparisonValue = pageValueCollection.ElementAt(j);
+
+                    if (rule.MustPrecede.Contains(comparisonValue))
+                    {
+                        pageValueCollection.Move(i, j);
+                        i = j + 1;
+                        break;
+                    }
+                }
+            }
+
+            return pageValueCollection.ToList();
+        }
+
+        private class Rule
+        {
+            public IList<int> MustPrecede { get; set; } = new List<int>();
+            public IList<int> MustBePrecededBy { get; set; } = new List<int>();
         }
     }
 }
