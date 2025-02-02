@@ -28,6 +28,7 @@ internal class Program
                 services.AddTransient<IDay, Day3>();
                 services.AddTransient<IDay, Day4>();
                 services.AddTransient<IDay, Day5>();
+                services.AddTransient<IDay, Day6>();
             });
     }
 }
