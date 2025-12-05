@@ -5,6 +5,8 @@ namespace AdventOfCode
 {
     public class Processor : IProcessor
     {
+        private const DayEnum Day = DayEnum.Day1;
+
         private readonly IDayFactory _factory;
 
         public Processor(IDayFactory factory)
@@ -14,7 +16,7 @@ namespace AdventOfCode
 
         public void Process()
         {
-            ProcessDay(DayEnum.Day6);
+            ProcessDay(Day);
         }
 
         private void ProcessDay(DayEnum dayEnum)

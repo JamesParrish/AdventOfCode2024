@@ -24,11 +24,11 @@ internal class Program
                 services.AddTransient<IProcessor, Processor>();
                 services.AddTransient<IFileHelper, FileHelper>();
                 services.AddTransient<IDay, Day1>();
-                services.AddTransient<IDay, Day2>();
-                services.AddTransient<IDay, Day3>();
-                services.AddTransient<IDay, Day4>();
-                services.AddTransient<IDay, Day5>();
-                services.AddTransient<IDay, Day6>();
+                //services.AddTransient<IDay, Day2>();
+                //services.AddTransient<IDay, Day3>();
+                //services.AddTransient<IDay, Day4>();
+                //services.AddTransient<IDay, Day5>();
+                //services.AddTransient<IDay, Day6>();
             });
     }
 }
