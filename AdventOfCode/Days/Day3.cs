@@ -1,147 +1,90 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
 using AdventOfCode.Enums;
 using AdventOfCode.Helpers;
-using AdventOfCode.Models.Day3;
 
 namespace AdventOfCode.Days
 {
     public class Day3 : BaseDay, IDay
     {
-        public DayEnum Day => DayEnum.Day3;
+        public override DayEnum Day => DayEnum.Day3;
 
         public Day3(IFileHelper fileHelper) : base(fileHelper) { }
 
-        public void Process1Star()
+        protected override string SolveOneStar(IEnumerable<string> lines)
         {
-            Console.WriteLine("Processing Day 3 - 1 Star");
+            long totalJoltage = 0;
 
-            var lines = GetLines(Day, StageEnum.Stage1);
-
-            var inputData = string.Join(null, lines);
-
-            var multiplicationTotal = CalculateMultiplicationTotal(inputData);
-
-            Console.WriteLine($"Multiplication total: {multiplicationTotal}");
-        }
-
-        public void Process2Star()
-        {
-            Console.WriteLine("Processing Day 3 - 2 Star");
-
-            var lines = GetLines(Day, StageEnum.Stage2);
-
-            var inputData = string.Join(null, lines);
-
-            var multiplicationTotal = CalculateConditionalMultiplicationTotal(inputData);
-
-            Console.WriteLine($"Multiplication total: {multiplicationTotal}");
-        }
-
-        private int CalculateMultiplicationTotal(string inputData)
-        {
-            var matchCollection = GetMultiplicationFunctions(inputData);
-
-            int multiplicationSum = GetMultiplicationSum(matchCollection);
-
-            return multiplicationSum;
-        }
-
-        private int CalculateConditionalMultiplicationTotal(string inputData)
-        {
-            var matchCollection = GetMultiplicationFunctions(inputData);
-
-            var doBands = GetDoBands(inputData);
-
-            var matchesWithinDoBands = matchCollection.Where(m => doBands.Any(b => b.StartIndex < m.Index && b.EndIndex > m.Index));
-
-            int multiplicationSum = GetMultiplicationSum(matchesWithinDoBands);
-
-            return multiplicationSum;
-        }
-
-        private int GetMultiplicationSum(IEnumerable<Match> matchCollection)
-        {
-            var multiplicationSum = 0;
-
-            foreach (var match in matchCollection)
+            foreach (var line in lines)
             {
-                var (factorA, factorB) = GetMultiplicationFactors(match.ToString());
-                multiplicationSum += factorA * factorB;
+                totalJoltage += GetMaximumJoltage(line, 2);
             }
 
-            return multiplicationSum;
+            return totalJoltage.ToString();
         }
 
-        private MatchCollection GetMultiplicationFunctions(string input)
+        protected override string SolveTwoStar(IEnumerable<string> lines)
         {
-            const string multiplicationFunctionPattern = @"mul\(\d+,\d+\)";
-            var multiplicationFunctions = Regex.Matches(input, multiplicationFunctionPattern);
+            long totalJoltage = 0;
 
-            return multiplicationFunctions;
-        }
-
-        private (int, int) GetMultiplicationFactors(string input)
-        {
-            const string factorsPattern = @"\d+";
-            var factors = Regex.Matches(input, factorsPattern);
-
-            var firstValue = Int32.Parse(factors.First().Value);
-            var secondValue = Int32.Parse(factors.Last().Value);
-
-            return (firstValue, secondValue);
-        }
-
-        private IEnumerable<DoBand> GetDoBands(string input)
-        {
-            var doIndexes = GetDoIndexes(input);
-            var doNotIndexes = GetDoNotIndexes(input);
-
-            var doBands = new List<DoBand>();
-
-            if (doIndexes.First() > doNotIndexes.First())
+            foreach (var line in lines)
             {
-                doBands.Add(new DoBand()
-                {
-                    StartIndex = 0,
-                    EndIndex = doNotIndexes.First()
-                });
+                totalJoltage += GetMaximumJoltage(line, 12);
             }
 
-            foreach (var doIndex in doIndexes)
+            return totalJoltage.ToString();
+        }
+
+        private long GetMaximumJoltage(string batteryBank, int batteryCount)
+        {
+            var batteries = batteryBank.ToCharArray();
+
+            var activatedBatteryIndexes = new int[batteryCount];
+
+            for (int i = 0; i < batteryCount; i++)
             {
-                if (doBands.Exists(b => b.StartIndex < doIndex && b.EndIndex > doIndex))
+                int? previousBatteryIndex = i == 0 ? null : activatedBatteryIndexes[i - 1];
+
+                var batteriesToConsider = i == 0 ?
+                    batteries :
+                    batteryBank.Substring(activatedBatteryIndexes[i - 1] + 1).ToCharArray();
+
+                for (int x = 9; x >= 1; x--)
                 {
-                    continue;
+                    var firstIndex = GetFirstIndex(x, batteriesToConsider);
+
+                    if (firstIndex > -1 && firstIndex < batteriesToConsider.Length - batteryCount + i + 1)
+                    {
+                        activatedBatteryIndexes[i] = i == 0 ? firstIndex : firstIndex + previousBatteryIndex.Value + 1;
+                        break;
+                    }
                 }
-
-                var nextDoNotIndex = doNotIndexes.FirstOrDefault(i => i > doIndex);
-
-                doBands.Add(new DoBand
-                {
-                    StartIndex = doIndex,
-                    EndIndex = nextDoNotIndex == 0 ? int.MaxValue : nextDoNotIndex
-                });
             }
 
-            return doBands;
+            var maximumJoltageStringBuilder = new StringBuilder();
+
+            foreach (var activatedBatteryIndex in activatedBatteryIndexes)
+            {
+                maximumJoltageStringBuilder.Append(batteries[activatedBatteryIndex]);
+            }
+
+            long.TryParse(maximumJoltageStringBuilder.ToString(), out var maximumJoltage);
+
+            //Console.WriteLine(maximumJoltage);
+            return maximumJoltage;
         }
 
-        private IEnumerable<int> GetDoIndexes(string input)
+        private int GetFirstIndex(int value, char[] batteries)
         {
-            const string doFunctionPattern = @"do\(\)";
-            var doFunctions = Regex.Matches(input, doFunctionPattern);
+            if (value < 0 || value > 9)
+            {
+                throw new ArgumentOutOfRangeException("Battery value must be 0-9");
+            }
 
+            var valueCharacter = value.ToString()[0];
 
-            return doFunctions.Select(m => m.Index);
-        }
+            var firstIndex = batteries.ToList().IndexOf(valueCharacter);
 
-        private IEnumerable<int> GetDoNotIndexes(string input)
-        {
-            const string doNotFunctionPattern = @"don\'t\(\)";
-            var doNotFunctions = Regex.Matches(input, doNotFunctionPattern);
-
-
-            return doNotFunctions.Select(m => m.Index);
+            return firstIndex;
         }
     }
 }
