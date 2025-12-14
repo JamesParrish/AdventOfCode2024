@@ -5,7 +5,7 @@ namespace AdventOfCode
 {
     public class Processor : IProcessor
     {
-        private const DayEnum Day = DayEnum.Day1;
+        private const DayEnum Day = DayEnum.Day2;
 
         private readonly IDayFactory _factory;
 

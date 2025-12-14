@@ -5,205 +5,119 @@ namespace AdventOfCode.Days
 {
     public class Day2 : BaseDay, IDay
     {
-        public DayEnum Day => DayEnum.Day2;
-
-        private const int ToleranceLevel = 3;
-        private const int ToleranceDampenerAllowance = 1;
+        public override DayEnum Day => DayEnum.Day2;
 
         public Day2(IFileHelper fileHelper) : base(fileHelper) { }
 
-        public void Process1Star()
+        protected override string SolveOneStar(IEnumerable<string> lines)
         {
-            Console.WriteLine("Processing Day 2 - 1 Star");
+            var ranges = GetRanges(lines.First());
 
-            var lines = GetLines(Day, StageEnum.Stage1);
+            long invalidIdTotal = 0;
 
-            var safeReportCount = GetNumberOfSafeReports(lines, 0);
-
-            Console.WriteLine($"Total safe reports: {safeReportCount}");
-        }
-
-        public void Process2Star()
-        {
-            Console.WriteLine("Processing Day 2 - 2 Star");
-
-            var lines = GetLines(Day, StageEnum.Stage2);
-
-            var safeReportCount = GetNumberOfSafeReports(lines, ToleranceDampenerAllowance);
-
-            Console.WriteLine($"Total safe reports: {safeReportCount}");
-        }
-
-        private int GetNumberOfSafeReports(IEnumerable<string> lines, int allowedErrors)
-        {
-            var safeReportCount = 0;
-
-            foreach (var line in lines)
+            foreach (var (start, end) in ranges)
             {
-                var report = GetReport(line);
-                var isSafe = IsReportSafe(report, allowedErrors);
+                invalidIdTotal += GetInvalidIdTotal(start, end, false);
+            }
 
-                if (isSafe)
+            return invalidIdTotal.ToString();
+        }
+
+        protected override string SolveTwoStar(IEnumerable<string> lines)
+        {
+            var ranges = GetRanges(lines.First());
+
+            long invalidIdTotal = 0;
+
+            foreach (var (start, end) in ranges)
+            {
+                invalidIdTotal += GetInvalidIdTotal(start, end, true);
+            }
+
+            return invalidIdTotal.ToString();
+        }
+
+        private IEnumerable<(long, long)> GetRanges(string line)
+        {
+            var ranges = new List<(long, long)>();
+            var rangeStrings = line.Split(',');
+
+            foreach (var rangeString in rangeStrings)
+            {
+                var startAndEndStrings = rangeString.Split('-');
+
+                long.TryParse(startAndEndStrings[0], out var startValue);
+                long.TryParse(startAndEndStrings[1], out var endValue);
+
+                ranges.Add((startValue, endValue));
+            }
+
+            return ranges;
+        }
+
+        private long GetInvalidIdTotal(long start, long end, bool checkMultiplePartIds)
+        {
+            long invalidIdTotal = 0;
+
+            for (var i = start; i <= end; i++)
+            {
+                if (IsFakeId(i, checkMultiplePartIds))
                 {
-                    safeReportCount++;
+                    invalidIdTotal += i;
                 }
             }
 
-            return safeReportCount;
+            return invalidIdTotal;
         }
 
-        private IList<int> GetReport(string line)
+        private bool IsFakeId(long value, bool checkMultiplePartIds)
         {
-            var rawValues = line.Split(' ');
-            var numericValues = rawValues.Select(i => Int32.Parse(i));
-            return numericValues.ToList();
-        }
-
-        private bool IsReportSafe(IList<int> report, int allowedErrors)
-        {
-            if (report.Count < 2)
+            if (!checkMultiplePartIds)
             {
-                return true;
+                var splitValues = SplitValues(value, 2);
             }
 
-            if (report[0] > report[1])
+            var maximumSplitCount = checkMultiplePartIds ? value.ToString().Length : 2;
+
+            for (var i = 2; i <= maximumSplitCount; i++)
             {
-                if (IsDescendingReportSafe(report, allowedErrors))
+                var splitValues = SplitValues(value, i);
+
+                if (splitValues == null)
+                {
+                    continue;
+                }
+
+                if (splitValues.Distinct().Count() == 1)
                 {
                     return true;
-                }
-
-                if (allowedErrors == 0)
-                {
-                    return false;
-                }
-
-                if (report[0] < report[2])
-                {
-                    var updatedReport = new List<int>(report);
-                    updatedReport.RemoveAt(1);
-                    return IsAscendingReportSafe(updatedReport, allowedErrors - 1);
-                }
-
-                if (report[1] < report[2])
-                {
-                    var updatedReport = new List<int>(report);
-                    updatedReport.RemoveAt(0);
-                    return IsAscendingReportSafe(updatedReport, allowedErrors - 1);
-                }
-            }
-            else
-            {
-                if (IsAscendingReportSafe(report, allowedErrors))
-                {
-                    return true;
-                }
-
-                if (allowedErrors == 0)
-                {
-                    return false;
-                }
-
-                if (report[0] > report[2])
-                {
-                    var updatedReport = new List<int>(report);
-                    updatedReport.RemoveAt(1);
-                    return IsDescendingReportSafe(updatedReport, allowedErrors - 1);
-                }
-
-                if (report[1] > report[2])
-                {
-                    var updatedReport = new List<int>(report);
-                    updatedReport.RemoveAt(0);
-                    return IsDescendingReportSafe(updatedReport, allowedErrors - 1);
                 }
             }
 
             return false;
         }
 
-        private bool IsDescendingReportSafe(IList<int> report, int allowedErrors)
+        private IEnumerable<string>? SplitValues(long value, int parts)
         {
-            for (var i = 0; i < report.Count - 1; i++)
+            var stringValue = value.ToString();
+
+            if (stringValue.Length % parts != 0)
             {
-                var current = report[i];
-                var next = report[i + 1];
-
-                if (current <= next)
-                {
-                    return IsDescendingReportSafeWithinTolerableRange(report, allowedErrors, i);
-                }
-
-                if (current - ToleranceLevel > next)
-                {
-                    return IsDescendingReportSafeWithinTolerableRange(report, allowedErrors, i);
-                }
+                return null;
             }
 
-            return true;
-        }
+            var splitLength = stringValue.Length / parts;
 
-        private bool IsDescendingReportSafeWithinTolerableRange(IList<int> report, int allowedErrors, int errorIndex)
-        {
-            if (allowedErrors == 0)
+            var substrings = new List<string>();
+
+            for (int i = 0; i < parts; i++)
             {
-                return false;
+                var startPosition = i * splitLength;
+
+                substrings.Add(stringValue.Substring(startPosition, splitLength));
             }
 
-            var updatedReport = new List<int>(report);
-            updatedReport.RemoveAt(errorIndex);
-
-            if (IsDescendingReportSafe(updatedReport, allowedErrors - 1))
-            {
-                return true;
-            }
-
-            updatedReport = new List<int>(report);
-            updatedReport.RemoveAt(errorIndex + 1);
-
-            return IsDescendingReportSafe(updatedReport, allowedErrors - 1);
-        }
-
-        private bool IsAscendingReportSafe(IList<int> report, int allowedErrors)
-        {
-            for (var i = 0; i < report.Count - 1; i++)
-            {
-                var current = report[i];
-                var next = report[i + 1];
-
-                if (current >= next)
-                {
-                    return IsAscendingReportSafeWithinTolerableRange(report, allowedErrors, i);
-                }
-
-                if (current + ToleranceLevel < next)
-                {
-                    return IsAscendingReportSafeWithinTolerableRange(report, allowedErrors, i);
-                }
-            }
-
-            return true;
-        }
-
-        private bool IsAscendingReportSafeWithinTolerableRange(IList<int> report, int allowedErrors, int errorIndex)
-        {
-            if (allowedErrors == 0)
-            {
-                return false;
-            }
-
-            var updatedReport = new List<int>(report);
-            updatedReport.RemoveAt(errorIndex);
-
-            if (IsAscendingReportSafe(updatedReport, allowedErrors - 1))
-            {
-                return true;
-            }
-
-            updatedReport = new List<int>(report);
-            updatedReport.RemoveAt(errorIndex + 1);
-
-            return IsAscendingReportSafe(updatedReport, allowedErrors - 1);
+            return substrings;
         }
     }
 }

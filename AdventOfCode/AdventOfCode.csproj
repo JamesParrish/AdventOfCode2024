@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Days\Day2.cs" />
     <Compile Remove="Days\Day3.cs" />
     <Compile Remove="Days\Day4.cs" />
     <Compile Remove="Days\Day5.cs" />
